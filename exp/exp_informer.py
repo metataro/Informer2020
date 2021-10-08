@@ -1,6 +1,7 @@
 from data.data_loader import Dataset_ETT_hour, Dataset_ETT_minute, Dataset_Custom, Dataset_Pred
 from exp.exp_basic import Exp_Basic
 from models.model import Informer, InformerStack
+from utils.loggers import Logger
 
 from utils.tools import EarlyStopping, adjust_learning_rate
 from utils.metrics import metric
@@ -19,9 +20,9 @@ import warnings
 warnings.filterwarnings('ignore')
 
 class Exp_Informer(Exp_Basic):
-    def __init__(self, args):
-        super(Exp_Informer, self).__init__(args)
-    
+    def __init__(self, args, logger: Logger):
+        super(Exp_Informer, self).__init__(args, logger)
+
     def _build_model(self):
         model_dict = {
             'informer':Informer,
@@ -142,6 +143,8 @@ class Exp_Informer(Exp_Basic):
         if self.args.use_amp:
             scaler = torch.cuda.amp.GradScaler()
 
+        train_step = 0
+
         for epoch in range(self.args.train_epochs):
             iter_count = 0
             train_loss = []
@@ -150,18 +153,29 @@ class Exp_Informer(Exp_Basic):
             epoch_time = time.time()
             for i, (batch_x,batch_y,batch_x_mark,batch_y_mark) in enumerate(train_loader):
                 iter_count += 1
+                train_step += 1
                 
                 model_optim.zero_grad()
                 pred, true = self._process_one_batch(
                     train_data, batch_x, batch_y, batch_x_mark, batch_y_mark)
                 loss = criterion(pred, true)
                 train_loss.append(loss.item())
+
+                self.logger.log_dict({
+                    'train/epoch': epoch,
+                    'train/loss': loss.item()
+                }, train_step)
                 
                 if (i+1) % 100==0:
                     print("\titers: {0}, epoch: {1} | loss: {2:.7f}".format(i + 1, epoch + 1, loss.item()))
                     speed = (time.time()-time_now)/iter_count
                     left_time = speed*((self.args.train_epochs - epoch)*train_steps - i)
                     print('\tspeed: {:.4f}s/iter; left time: {:.4f}s'.format(speed, left_time))
+
+                    self.logger.log_dict({
+                        'train/speed': speed
+                    }, train_step)
+
                     iter_count = 0
                     time_now = time.time()
                 
@@ -175,8 +189,16 @@ class Exp_Informer(Exp_Basic):
 
             print("Epoch: {} cost time: {}".format(epoch+1, time.time()-epoch_time))
             train_loss = np.average(train_loss)
+
             vali_loss = self.vali(vali_data, vali_loader, criterion)
+            self.logger.log_dict({
+                'valid/loss': vali_loss
+            }, train_step)
+
             test_loss = self.vali(test_data, test_loader, criterion)
+            self.logger.log_dict({
+                'test/loss': test_loss
+            }, train_step)
 
             print("Epoch: {0}, Steps: {1} | Train Loss: {2:.7f} Vali Loss: {3:.7f} Test Loss: {4:.7f}".format(
                 epoch + 1, train_steps, train_loss, vali_loss, test_loss))

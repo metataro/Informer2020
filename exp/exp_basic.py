@@ -2,9 +2,13 @@ import os
 import torch
 import numpy as np
 
+from utils.loggers import Logger
+
+
 class Exp_Basic(object):
-    def __init__(self, args):
+    def __init__(self, args, logger: Logger):
         self.args = args
+        self.logger = logger
         self.device = self._acquire_device()
         self.model = self._build_model().to(self.device)
 
