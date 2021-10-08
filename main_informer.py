@@ -66,6 +66,12 @@ parser.add_argument('--gpu', type=int, default=0, help='gpu')
 parser.add_argument('--use_multi_gpu', action='store_true', help='use multiple gpus', default=False)
 parser.add_argument('--devices', type=str, default='0,1,2,3', help='device ids of multile gpus')
 
+parser.add_argument('--wandb_logging', dest='wandb_logging', default=False, action='store_true',
+                    help='enables wandb logging')
+parser.add_argument('--wandb_project', type=str, default='pv_informer', help='wandb project name')
+parser.add_argument('--wandb_entity', type=str, default=None, help='wandb entity (optional)')
+parser.add_argument('--wandb_tags', type=str, nargs='+', help='wandb tags (optional)')
+
 args = parser.parse_args()
 
 args.use_gpu = True if torch.cuda.is_available() and args.use_gpu else False
