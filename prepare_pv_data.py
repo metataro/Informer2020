@@ -81,7 +81,7 @@ def main():
     logging.info(f"Grouped by gateway_id and createdAt: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
     if args.resample:
-        hourly_groups = df_cleaned.resample(args.resample, on='date')
+        hourly_groups = df_cleaned.resample(args.resample, on='createdAt')
         df_cleaned = hourly_groups.sum()
         logging.info(f"Resampled {args.resample}: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
