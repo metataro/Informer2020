@@ -77,13 +77,16 @@ def main():
     df_cleaned = df_cleaned.drop(df_cleaned[df_cleaned['сonsumption'] < 0].index)
     logging.info(f"Removed negative: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
+    if args.resample:
+        df_cleaned['createdAt'] = pd.to_datetime(df_cleaned['createdAt']).dt.round('15min')
+
     df_cleaned = df_cleaned.groupby(['gateway_id', 'createdAt']).agg({'pv_generation': sum, 'сonsumption': sum})
     logging.info(f"Grouped by gateway_id and createdAt: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
-    if args.resample:
-        hourly_groups = df_cleaned.resample(args.resample, on='createdAt')
-        df_cleaned = hourly_groups.sum()
-        logging.info(f"Resampled {args.resample}: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
+    # if args.resample:
+    #     hourly_groups = df_cleaned.resample(args.resample, on='createdAt')
+    #     df_cleaned = hourly_groups.sum()
+    #     logging.info(f"Resampled {args.resample}: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
     df_cleaned = df_cleaned.reset_index()
     df_cleaned = df_cleaned.rename(columns={"createdAt": "date"})
