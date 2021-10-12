@@ -78,7 +78,7 @@ def main():
     logging.info(f"Removed negative: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
     if args.resample:
-        df_cleaned['createdAt'] = pd.to_datetime(df_cleaned['createdAt']).dt.round(args.resample)
+        df_cleaned['createdAt'] = pd.to_datetime(df_cleaned['createdAt']).dt.floor(args.resample)
 
     df_cleaned = df_cleaned.groupby(['gateway_id', 'createdAt']).agg({'pv_generation': sum, 'сonsumption': sum})
     logging.info(f"Grouped by gateway_id and createdAt: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
