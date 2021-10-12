@@ -11,6 +11,7 @@ logging.getLogger().setLevel(logging.INFO)
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', default='../../data/raw/export_solar_manager_data_133.csv', help='')
 parser.add_argument('--out_path', default='../../data/informer/datasets', help='')
+parser.add_argument('--resample', default='H', type=str, help='')
 parser.add_argument('--train_size', default=0.8, type=float, help='')
 parser.add_argument('--dev_size', default=0.1, type=float, help='')
 parser.add_argument('--test_size', default=0.1, type=float, help='')
@@ -66,33 +67,36 @@ def main():
 
     logging.info(f"Loaded {df_raw.shape[0]} samples with {df_raw.shape[1]} features")
 
-    df_cleaned = df_raw.drop(df_raw[df_raw['pv_generation'] < 0].index)
-    df_cleaned = df_cleaned.drop(df_cleaned[df_cleaned['сonsumption'] < 0].index)
-
-    logging.info(f"Removed negative: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
-
-    df_cleaned = df_cleaned.groupby(['gateway_id', 'createdAt']).agg({'pv_generation': sum, 'сonsumption': sum})
-
-    logging.info(f"Grouped by gateway_id and createdAt: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
-
-    df_cleaned = df_cleaned.reset_index()
-    df_cleaned = df_cleaned.rename(columns={"createdAt": "date"})
+    df_cleaned = df_raw
 
     if len(args.gateway_ids) > 0:
         df_cleaned = df_cleaned[df_cleaned['gateway_id'].isin(args.gateway_ids)]
-
         logging.info(f"Filter gateway_id: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
-        df_cleaned.to_csv(os.path.join(out_path, 'all.csv'), index=False)
-    else:
-        df_train, df_valid, df_test = split_by_gateway(df_cleaned, args.train_size, args.dev_size, args.test_size)
+    df_cleaned = df_raw.drop(df_cleaned[df_cleaned['pv_generation'] < 0].index)
+    df_cleaned = df_cleaned.drop(df_cleaned[df_cleaned['сonsumption'] < 0].index)
+    logging.info(f"Removed negative: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
-        logging.info(f"Train/valid/test split: {df_train.shape}/{df_valid.shape}/{df_test.shape}")
+    df_cleaned = df_cleaned.groupby(['gateway_id', 'createdAt']).agg({'pv_generation': sum, 'сonsumption': sum})
+    logging.info(f"Grouped by gateway_id and createdAt: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
-        df_cleaned.to_csv(os.path.join(out_path, 'all.csv'), index=False)
-        df_train.to_csv(os.path.join(out_path, 'train.csv'), index=False)
-        df_valid.to_csv(os.path.join(out_path, 'valid.csv'), index=False)
-        df_test.to_csv(os.path.join(out_path, 'test.csv'), index=False)
+    if args.resample:
+        hourly_groups = df_cleaned.resample(args.resample, on='date')
+        df_cleaned = hourly_groups.sum()
+        logging.info(f"Resampled {args.resample}: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
+
+    df_cleaned = df_cleaned.reset_index()
+    df_cleaned = df_cleaned.rename(columns={"createdAt": "date"})
+    df_cleaned.to_csv(os.path.join(out_path, 'all.csv'), index=False)
+
+    # df_train, df_valid, df_test = split_by_gateway(df_cleaned, args.train_size, args.dev_size, args.test_size)
+    #
+    # logging.info(f"Train/valid/test split: {df_train.shape}/{df_valid.shape}/{df_test.shape}")
+    #
+    # df_cleaned.to_csv(os.path.join(out_path, 'all.csv'), index=False)
+    # df_train.to_csv(os.path.join(out_path, 'train.csv'), index=False)
+    # df_valid.to_csv(os.path.join(out_path, 'valid.csv'), index=False)
+    # df_test.to_csv(os.path.join(out_path, 'test.csv'), index=False)
 
     logging.info("Done.")
 
