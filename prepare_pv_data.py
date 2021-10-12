@@ -73,7 +73,7 @@ def main():
         df_cleaned = df_cleaned[df_cleaned['gateway_id'].isin(args.gateway_ids)]
         logging.info(f"Filter gateway_id: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
-    df_cleaned = df_raw.drop(df_cleaned[df_cleaned['pv_generation'] < 0].index)
+    df_cleaned = df_cleaned.drop(df_cleaned[df_cleaned['pv_generation'] < 0].index)
     df_cleaned = df_cleaned.drop(df_cleaned[df_cleaned['сonsumption'] < 0].index)
     logging.info(f"Removed negative: {df_cleaned.shape[0]} of {df_raw.shape[0]} samples remain")
 
